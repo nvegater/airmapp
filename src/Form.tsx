@@ -1,8 +1,11 @@
 import React, { FC, useState } from "react";
-import { Button, FormControl, FormErrorMessage } from "@chakra-ui/react";
+import { Box, Button, FormControl, FormErrorMessage } from "@chakra-ui/react";
 import { InputCoordinate } from "./InputCoordinate";
 import { FieldErrors, useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
+
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 import axios from "axios";
 import qs from "qs";
@@ -186,6 +189,24 @@ export const Form: FC = () => {
           Convert to GeoJSON
         </Button>
       )}
+
+      <Box mt={5}>
+        <MapContainer
+          center={[51.505, -0.09]}
+          zoom={13}
+          style={{ height: "350px", width: "100wh" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Marker position={[51.505, -0.09]}>
+            <Popup>
+              A pretty CSS3 popup. <br /> Easily customizable.
+            </Popup>
+          </Marker>
+        </MapContainer>
+      </Box>
     </form>
   );
 };
