@@ -4,6 +4,6 @@ import App from "./App";
 
 test("renders learn react link", () => {
   render(<App />);
-  const linkElement = screen.getByText(/hola/i);
+  const linkElement = screen.getByText(/GeoJson converter/i);
   expect(linkElement).toBeInTheDocument();
 });
