@@ -46,11 +46,15 @@ export const InputCoordinate: FC<InputCoordinateProps> = ({
 
   return (
     <FormControl isInvalid={fieldState.invalid} mb={5}>
-      <FormLabel htmlFor={field.name}>{label}</FormLabel>
-      <NumberInput>
+      <FormLabel htmlFor={field.name} data-testid={`testId-Label-${name}`}>
+        {label}
+      </FormLabel>
+      <NumberInput precision={6} pattern="(-)?[0-9]*(.[0-9]+)?">
         <NumberInputField {...field} placeholder={placeholder} />
       </NumberInput>
-      <FormErrorMessage>{error?.message}</FormErrorMessage>
+      <FormErrorMessage data-testid={`testId-Error-${name}`}>
+        {error?.message}
+      </FormErrorMessage>
     </FormControl>
   );
 };

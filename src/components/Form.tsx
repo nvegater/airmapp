@@ -1,15 +1,10 @@
 import React, { FC, useState } from "react";
 import { Box, Button, FormControl, FormErrorMessage } from "@chakra-ui/react";
-import { InputCoordinate } from "./InputCoordinate";
 import { FieldErrors, useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-
-import axios from "axios";
-import qs from "qs";
-import osmtogeojson from "osmtogeojson";
+import { InputCoordinate } from "./InputCoordinate";
+import { Map } from "./Map";
+import useMapApi, { OSMMapParams_0_6 } from "../api/useMapApi";
 
 export interface BoundingBoxInputsForm {
   minLong: number;
@@ -19,33 +14,42 @@ export interface BoundingBoxInputsForm {
   error: any;
 }
 
-type OSMMapParams_0_6 = [
-  left: number,
-  bottom: number,
-  right: number,
-  top: number
-];
-
-interface OSMBBox {
-  bbox: OSMMapParams_0_6;
-}
-
-const OSMApi_map_0_6 = "https://www.openstreetmap.org/api/0.6/map";
-
-const boundBoxFetcher = (url: string, params: OSMBBox) => {
-  console.log(params);
-  return axios
-    .get(url, {
-      params,
-      paramsSerializer: () => {
-        return qs.stringify(params, { arrayFormat: "comma", encode: false });
-      },
-    })
-    .then(({ data }) => data);
-};
-
 type ErrorSummaryProps<T> = {
   errors: FieldErrors<T>;
+};
+
+type ErrorType = "lat" | "long" | "area";
+
+const validateCoordinates = (data: BoundingBoxInputsForm): ErrorType | null => {
+  // The form converts the inputs to chars, this corrects that for validation
+  const minLat = parseFloat(data.minLat as unknown as string);
+  const maxLat = parseFloat(data.maxLat as unknown as string);
+  const minLong = parseFloat(data.minLong as unknown as string);
+  const maxLong = parseFloat(data.maxLong as unknown as string);
+
+  // based on https://github.com/openstreetmap/openstreetmap-website/blob/master/lib/bounding_box.rb
+  const latErr = minLat > maxLat;
+  const longErr = minLong > maxLong;
+
+  if (latErr) {
+    return "lat";
+  }
+  if (longErr) {
+    return "long";
+  }
+
+  let latDiff = Math.abs(data.maxLat) - Math.abs(data.minLat);
+  let longDiff = Math.abs(data.maxLong) - Math.abs(data.minLong);
+
+  const area = latDiff * longDiff;
+  // The API is limited to bounding boxes of about 0.5 degree by 0.5 degree
+  const AREA_LIMIT = 0.25; // 0.5 * 0.5
+
+  if (area > AREA_LIMIT) {
+    return "area";
+  }
+
+  return null;
 };
 
 export function ErrorSummary<T>({ errors }: ErrorSummaryProps<T>) {
@@ -67,26 +71,31 @@ export function ErrorSummary<T>({ errors }: ErrorSummaryProps<T>) {
 }
 
 export const Form: FC = () => {
-  // GET /api/0.6/map?bbox=left,bottom,right,top
-
   const {
     handleSubmit,
     control,
     formState: { errors },
     setError,
     clearErrors,
+    reset,
   } = useForm<BoundingBoxInputsForm>();
 
-  const [boundBoxOSM, setBoundBoxOSM] = useState<any>(null);
-  const [geoJSON, setGeoJSON] = useState<any>(null);
+  const [isValidCoordinates, setIsValidCoordinates] = useState<boolean>(false);
+  const [bboxCoordinates, setBboxCoordinates] = useState<OSMMapParams_0_6>([
+    0, 0, 0, 0,
+  ]);
+
+  const { boundsGeoJSON, error } = useMapApi({
+    pause: !isValidCoordinates,
+    isMock: false,
+    params: { bbox: bboxCoordinates },
+  });
 
   const onSubmit = async (data: BoundingBoxInputsForm) => {
     // clear general errors
     clearErrors("error");
-    let latDiff = Math.abs(data.maxLat) - Math.abs(data.minLat);
-    let longDiff = Math.abs(data.maxLong) - Math.abs(data.minLong);
-
-    if (latDiff < 0) {
+    const errors = validateCoordinates(data);
+    if (errors === "lat") {
       setError("maxLat", {
         message: "",
       });
@@ -98,7 +107,7 @@ export const Form: FC = () => {
       });
       return;
     }
-    if (longDiff < 0) {
+    if (errors === "long") {
       setError("maxLong", {
         message: "",
       });
@@ -111,22 +120,22 @@ export const Form: FC = () => {
       return;
     }
 
-    const area = latDiff * longDiff;
-    // The API is limited to bounding boxes of about 0.5 degree by 0.5 degree
-    const AREA_LIMIT = 0.25; // 0.5 * 0.5
-
-    if (area > AREA_LIMIT) {
+    if (errors === "area") {
       setError("maxLat", {
-        message: `The area ${area} is too big`,
+        message: `The area is too big`,
       });
       return;
     }
-    const boundBox = await boundBoxFetcher(OSMApi_map_0_6, {
-      bbox: [data.minLong, data.minLat, data.maxLong, data.maxLat],
-    });
 
-    if (boundBox && boundBox.elements.length > 0) {
-      setBoundBoxOSM(boundBox);
+    if (errors === null) {
+      setIsValidCoordinates(true);
+      setBboxCoordinates([
+        data.minLong,
+        data.minLat,
+        data.maxLong,
+        data.maxLat,
+      ]);
+      reset();
     }
   };
 
@@ -174,39 +183,14 @@ export const Form: FC = () => {
       </FormControl>
 
       <Button mt={4} colorScheme="teal" type="submit">
-        Get OSM JSON from openstreet map
+        Display elements
       </Button>
 
-      {boundBoxOSM !== null && (
-        <Button
-          onClick={() => {
-            const geoJSON = osmtogeojson(boundBoxOSM);
-            if (geoJSON) {
-              setGeoJSON(geoJSON);
-            }
-          }}
-        >
-          Convert to GeoJSON
-        </Button>
+      {!error && (
+        <Box mt={5}>
+          <Map data={boundsGeoJSON} />
+        </Box>
       )}
-
-      <Box mt={5}>
-        <MapContainer
-          center={[51.505, -0.09]}
-          zoom={13}
-          style={{ height: "350px", width: "100wh" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={[51.505, -0.09]}>
-            <Popup>
-              A pretty CSS3 popup. <br /> Easily customizable.
-            </Popup>
-          </Marker>
-        </MapContainer>
-      </Box>
     </form>
   );
 };

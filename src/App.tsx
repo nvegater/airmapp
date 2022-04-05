@@ -7,8 +7,9 @@ import {
   Stack,
   Text,
   useBreakpointValue,
+  Link,
 } from "@chakra-ui/react";
-import { Form } from "./Form";
+import { Form } from "./components/Form";
 
 function App() {
   return (
@@ -24,11 +25,39 @@ function App() {
             <Heading
               size={useBreakpointValue({ base: "xs", md: "sm" })}
               fontWeight="medium"
+              mb={5}
             >
-              GeoJson converter
+              Elements in a bounding box
             </Heading>
+            <Text
+              size={useBreakpointValue({ base: "xs", md: "sm" })}
+              marginBottom={"20px"}
+            >
+              Insert a{" "}
+              <Link
+                href="https://wiki.openstreetmap.org/wiki/Downloading_data"
+                color="teal"
+              >
+                valid
+              </Link>{" "}
+              bounding box to see the elements inside of it.
+            </Text>
             <Text color="muted">
-              insert location and you will see how the GeoJson Renders
+              To see some examples of valid bounding box coordinates you can use
+              the{" "}
+              <Link
+                href="http://bboxfinder.com/#17.972538,-92.947702,17.979212,-92.938046"
+                color="teal"
+              >
+                Bbox finder
+              </Link>{" "}
+              or the{" "}
+              <Link
+                href="https://www.openstreetmap.org/export#map=16/48.4550/15.2550"
+                color="teal"
+              >
+                Open street map export tool.
+              </Link>
             </Text>
           </Stack>
           <Form />
