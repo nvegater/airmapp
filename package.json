@@ -16,6 +16,7 @@
     "@types/react-dom": "^17.0.14",
     "axios": "^0.26.1",
     "framer-motion": "^3.10.6",
+    "osmtogeojson": "^3.0.0-beta.4",
     "qs": "^6.10.3",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

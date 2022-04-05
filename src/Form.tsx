@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { Button, FormControl, FormErrorMessage } from "@chakra-ui/react";
 import { InputCoordinate } from "./InputCoordinate";
 import { FieldErrors, useForm } from "react-hook-form";
@@ -6,6 +6,7 @@ import { ErrorMessage } from "@hookform/error-message";
 
 import axios from "axios";
 import qs from "qs";
+import osmtogeojson from "osmtogeojson";
 
 export interface BoundingBoxInputsForm {
   minLong: number;
@@ -73,6 +74,9 @@ export const Form: FC = () => {
     clearErrors,
   } = useForm<BoundingBoxInputsForm>();
 
+  const [boundBoxOSM, setBoundBoxOSM] = useState<any>(null);
+  const [geoJSON, setGeoJSON] = useState<any>(null);
+
   const onSubmit = async (data: BoundingBoxInputsForm) => {
     // clear general errors
     clearErrors("error");
@@ -118,7 +122,9 @@ export const Form: FC = () => {
       bbox: [data.minLong, data.minLat, data.maxLong, data.maxLat],
     });
 
-    console.log(boundBox);
+    if (boundBox && boundBox.elements.length > 0) {
+      setBoundBoxOSM(boundBox);
+    }
   };
 
   return (
@@ -165,8 +171,21 @@ export const Form: FC = () => {
       </FormControl>
 
       <Button mt={4} colorScheme="teal" type="submit">
-        Get GeoJSON
+        Get OSM JSON from openstreet map
       </Button>
+
+      {boundBoxOSM !== null && (
+        <Button
+          onClick={() => {
+            const geoJSON = osmtogeojson(boundBoxOSM);
+            if (geoJSON) {
+              setGeoJSON(geoJSON);
+            }
+          }}
+        >
+          Convert to GeoJSON
+        </Button>
+      )}
     </form>
   );
 };
