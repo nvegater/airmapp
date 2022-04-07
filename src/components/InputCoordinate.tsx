@@ -50,7 +50,11 @@ export const InputCoordinate: FC<InputCoordinateProps> = ({
         {label}
       </FormLabel>
       <NumberInput precision={6} pattern="(-)?[0-9]*(.[0-9]+)?">
-        <NumberInputField {...field} placeholder={placeholder} />
+        <NumberInputField
+          {...field}
+          placeholder={placeholder}
+          data-testid={`testId-Input-${field.name}`}
+        />
       </NumberInput>
       <FormErrorMessage data-testid={`testId-Error-${name}`}>
         {error?.message}

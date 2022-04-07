@@ -70,7 +70,11 @@ export function ErrorSummary<T>({ errors }: ErrorSummaryProps<T>) {
   );
 }
 
-export const Form: FC = () => {
+interface FormProps {
+  sideEffectsOnSubmit?: () => void;
+}
+
+export const Form: FC<FormProps> = ({ sideEffectsOnSubmit }) => {
   const {
     handleSubmit,
     control,
@@ -135,6 +139,7 @@ export const Form: FC = () => {
         data.maxLong,
         data.maxLat,
       ]);
+      sideEffectsOnSubmit && sideEffectsOnSubmit();
       reset();
     }
   };
